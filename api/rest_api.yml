@@ -1,0 +1,565 @@
+openapi: 3.0.3
+info:
+  title: Social Network API
+  description: |
+    This API provides endpoints for a social network platform that allows users to share posts, interact with other travelers, 
+    and explore popular travel destinations.  
+
+    **Auth & User Identification**
+    - The user ID for authenticated operations is derived from the `X-Auth-Token` header on the server side.
+
+    **Main features:**
+    - Create and manage posts with photos and travel locations  
+    - Like and comment on other users' posts  
+    - Follow other travelers and view personalized feeds
+  version: 1.0.0
+
+paths:
+  /api/v1/posts:
+    post:
+      summary: Create a post
+      tags: [ Posts ]
+      operationId: api_posts_create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreateRequest'
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/PostCreateResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+    get:
+      summary: Get all posts for user
+      tags: [ Posts ]
+      operationId: api_posts_list
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/PostListResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+  /api/v1/posts/{postId}:
+    put:
+      summary: Update a post
+      tags: [ Posts ]
+      operationId: api_posts_update
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostUpdateRequest'
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/PostUpdateResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+    delete:
+      summary: Delete a post
+      tags: [ Posts ]
+      operationId: api_posts_delete
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { nullable: true, enum: [ null ] }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+  /api/v1/posts/{postId}/photos:
+    post:
+      summary: Upload photo to post
+      tags: [ Posts ]
+      operationId: api_posts_photos_upload
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [ file, sortOrder ]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                sortOrder:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+      responses:
+        "201":
+          description: Photo uploaded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/PostPhotoUploadResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+  /api/v1/posts/{postId}/likes:
+    post:
+      summary: Like a post
+      tags: [ Reactions ]
+      operationId: api_posts_likes_create
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LikeCreateRequest'
+      responses:
+        "200":
+          description: Liked
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/LikeCreateResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+    delete:
+      summary: Remove like from post
+      tags: [ Reactions ]
+      operationId: api_posts_likes_delete
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        "200":
+          description: Unliked
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/LikeDeleteResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+  /api/v1/comments:
+    post:
+      summary: Create a comment
+      tags: [ Comments ]
+      operationId: api_comments_create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/CommentCreateResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+  /api/v1/users/{userId}/follows:
+    post:
+      summary: Follow a user
+      tags: [ Follows ]
+      operationId: api_users_follow
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        "200":
+          description: Followed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/FollowResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+    delete:
+      summary: Unfollow a user
+      tags: [ Follows ]
+      operationId: api_users_unfollow
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        "200":
+          description: Unfollowed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/FollowResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+  /api/v1/places/popular:
+    get:
+      summary: Get popular places
+      tags: [ Places ]
+      operationId: api_places_popular
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      success: { type: boolean, enum: [ true ] }
+                      data: { $ref: '#/components/schemas/PopularPlaceListResponse' }
+                      error: { nullable: true, enum: [ null ], example: null }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
+components:
+  parameters:
+    PostId:
+      name: postId
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+
+  schemas:
+    Envelope:
+      type: object
+      required: [success, data, error]
+      properties:
+        success:
+          type: boolean
+          description: Флаг успеха операции
+        data:
+          nullable: true
+          description: Полезные данные ответа
+        error:
+          $ref: '#/components/schemas/Error'
+          nullable: true
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    PostCreateRequest:
+      type: object
+      required: [userId]
+      properties:
+        userId: { type: integer, format: int64, minimum: 1 }
+        placeId: { type: integer, format: int64, minimum: 1, nullable: true }
+        text: { type: string, maxLength: 1000 }
+        photos:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/PostPhotoImage'
+
+    PostPhotoImage:
+      type: object
+      required: [url, sortOrder]
+      properties:
+        url: { type: string, format: uri, maxLength: 2048 }
+        sortOrder: { type: integer, minimum: 1, maximum: 5 }
+
+    PostPhotoUploadResponse:
+      type: object
+      properties:
+        url: { type: string, format: uri, maxLength: 2048 }
+
+    CommentCreateRequest:
+      type: object
+      required: [ postId, userId, text ]
+      properties:
+        postId: { type: integer, format: int64, minimum: 1 }
+        userId: { type: integer, format: int64, minimum: 1 }
+        text: { type: string }
+
+    CommentCreateResponse:
+      type: object
+      required: [ id, postId, userId, text, createdAt ]
+      properties:
+        id: { type: integer, format: int64 }
+
+    FollowResponse:
+      type: object
+      required: [ following, userId ]
+      properties:
+        following: { type: boolean, example: true }
+        userId: { type: integer, format: int64 }
+
+    PostCreateResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+
+    LikeCreateResponse:
+      type: object
+      required: [ liked, postId ]
+      properties:
+        liked: { type: boolean, example: true }
+        postId: { type: integer, format: int64 }
+        likesCount:
+          type: integer
+          description: Optional, total likes after operation
+          nullable: true
+
+    LikeDeleteResponse:
+      type: object
+      required: [ liked, postId ]
+      properties:
+        liked: { type: boolean, example: true }
+        postId: { type: integer, format: int64 }
+        likesCount:
+          type: integer
+          description: Optional, total likes after operation
+          nullable: true
+
+    PopularPlaceListResponse:
+      type: array
+      items: { $ref: '#/components/schemas/Place' }
+
+    Place:
+      type: object
+      required: [ id, name, lat, lon ]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        lat: { type: number, format: float }
+        lon: { type: number, format: float }
+
+    PostListResponse:
+      type: array
+      items: { $ref: '#/components/schemas/Post' }
+
+    Post:
+      type: object
+      required: [ id ]
+      properties:
+        id: { type: integer, format: int64 }
+        userId: { type: integer, format: int64 }
+        placeId: { type: integer, format: int64, nullable: true }
+        text: { type: string, maxLength: 1000 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        photos:
+          type: array
+          items: { $ref: '#/components/schemas/PostPhotoImage' }
+
+    PostUpdateResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+
+    LikeCreateRequest:
+      type: object
+      required: [ userId ]
+      properties:
+        userId: { type: integer, format: int64, minimum: 1 }
+
+    PostUpdateRequest:
+      type: object
+      properties:
+        placeId: { type: integer, format: int64, minimum: 1, nullable: true }
+        text: { type: string, maxLength: 1000 }
+        photos:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/PostPhotoImage'
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [false]
+                  data:
+                    nullable: true
+                    enum: [ null ]
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [false]
+                  data:
+                    nullable: true
+                    enum: [ null ]
+
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [false]
+                  data:
+                    nullable: true
+                    enum: [ null ]
+
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [false]
+                  data:
+                    nullable: true
+                    enum: [ null ]
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [ false ]
+                  data:
+                    nullable: true
+                    enum: [ null ]
